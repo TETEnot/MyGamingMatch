@@ -20,10 +20,9 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (isLoaded && user) {
-      const metadata = user.unsafeMetadata as UnsafeMetadata;
-      setUsername(metadata.username || '');
-      setStatusMessage(metadata.statusMessage || '');
-      setImageUrl(metadata.imageUrl || '');
+      setUsername(user.unsafeMetadata.username || '');
+      setStatusMessage(user.unsafeMetadata.statusMessage || '');
+      setImageUrl(user.unsafeMetadata.imageUrl || '');
     }
   }, [isLoaded, user]);
 
@@ -32,20 +31,31 @@ const ProfilePage = () => {
       try {
         await user.update({
           unsafeMetadata: {
-            username: username,
-            statusMessage: statusMessage,
-            imageUrl: imageUrl,
+            username,
+            statusMessage,
+            imageUrl,
           },
         });
-        console.log('User updated successfully');
+
+        await fetch('/api/saveUser', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clerkUserId: user.id,
+            username,
+            imageUrl,
+            statusMessage,
+          }),
+        });
+
         alert('プロフィールが更新されました');
         window.location.reload();
       } catch (error) {
         console.error('Error updating user:', error);
         alert('プロフィールの更新に失敗しました');
       }
-    } else {
-      console.error('User is not available');
     }
   };
 

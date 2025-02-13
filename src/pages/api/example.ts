@@ -8,6 +8,7 @@ interface Post {
   game: string;
   description: string;
   date: string;
+  username: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

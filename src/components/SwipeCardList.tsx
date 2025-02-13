@@ -9,6 +9,7 @@ interface Card {
   game: string;
   description: string;
   date: string;
+  username: string;
 }
 
 const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dispatch<React.SetStateAction<Card[]>> }) => {
@@ -28,12 +29,15 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
 
   const handleAddNewCard = async () => {
     try {
-      const response = await fetch('/api/example', {
+      const response = await fetch('/api/createPost', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: user?.fullName || '匿名', ...newCard, date: new Date().toISOString().split('T')[0] }),
+        body: JSON.stringify({
+          content: 'Your post content',
+          clerkUserId: 'user_clerk_id', // 正しいユーザーIDを設定
+        }),
       });
 
       if (!response.ok) {
@@ -41,12 +45,9 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
       }
 
       const data = await response.json();
-      console.log('Post added:', data);
-      setCards((prevCards) => [...prevCards, data]);
-      setShowForm(false);
-      setNewCard({ game: '', description: '' });
+      console.log('Post created:', data);
     } catch (error) {
-      console.error('Error adding post:', error);
+      console.error('Error adding new card:', error);
     }
   };
 
@@ -95,7 +96,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
                 <h2 className="text-xl font-bold mb-4 text-black">新しい投稿</h2>
                 <select
                   value={newCard.game}
-                  onChange={(e) => setNewCard({ ...newCard, game: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewCard({ ...newCard, game: e.target.value })}
                   className="border p-2 mb-2 w-full text-gray-700"
                 >
                   <option className='text-gray-700' value="" disabled>ゲームを選択してください</option>
@@ -106,7 +107,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
                 <textarea
                   placeholder="説明"
                   value={newCard.description}
-                  onChange={(e) => setNewCard({ ...newCard, description: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewCard({ ...newCard, description: e.target.value })}
                   className="border p-2 mb-2 w-full text-gray-700"
                 />
                 <button

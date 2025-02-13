@@ -1,14 +1,17 @@
 import React from 'react';
-import { useUserContext } from '../context/UserContext';
 
-const PostCard = ({ post }: { post: any }) => {
-  const { user } = useUserContext();
+interface Post {
+  title: string;
+  content: string;
+  username: string;
+}
 
+const PostCard = ({ post }: { post: Post }) => {
   return (
     <div className="post-card">
       <h2>{post.title}</h2>
       <p>{post.content}</p>
-      <span>Posted by: {user.username}</span>
+      <span>Posted by: {post.username}</span>
     </div>
   );
 };

@@ -13,18 +13,21 @@ const HomePage = () => {
       game: 'ゲームA',
       description: '一緒にプレイしませんか？',
       date: '2023-10-01',
+      username: 'アレックス',
     },
     {
       name: 'ジョン',
       game: 'ゲームB',
       description: '初心者歓迎！',
       date: '2023-10-02',
+      username: 'ジョン',
     },
     {
       name: 'ジェーン',
       game: 'ゲームC',
       description: '楽しくプレイしましょう！',
       date: '2023-10-03',
+      username: 'ジェーン',
     },
   ]);
 
