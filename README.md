@@ -1,3 +1,27 @@
+# My Next.js App
+
+## セットアップ
+
+1. リポジトリをクローンします。
+2. 必要なパッケージをインストールします。
+   ```bash
+   npm install
+   ```
+3. 環境変数を設定します。
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+## 開発サーバーの起動
+
+```bash
+npm run dev
+```
+
+## デプロイ
+
+VercelまたはAWSでのデプロイを想定しています。
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

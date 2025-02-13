@@ -6,22 +6,36 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rimraf .next"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.1.7"
+    "@clerk/clerk-js": "^4.73.13",
+    "@clerk/nextjs": "^6.11.2",
+    "@prisma/client": "^6.3.1",
+    "@react-spring/web": "^9.7.5",
+    "autoprefixer": "^10.4.20",
+    "aws-sdk": "^2.1692.0",
+    "formidable": "^3.5.2",
+    "hono": "^4.7.0",
+    "next": "^15.1.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-tinder-card": "^1.6.4",
+    "shadcn-ui": "^0.9.4",
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20.17.17",
+    "@types/react": "^19.0.8",
     "@types/react-dom": "^19",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
-    "@eslint/eslintrc": "^3"
+    "postcss": "^8.5.2",
+    "prisma": "^6.3.1",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
   }
 }
