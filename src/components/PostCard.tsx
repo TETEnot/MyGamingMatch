@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import LikeButton from './LikeButton'
+import FollowButton from './FollowButton'
 
 type PostWithUser = Post & {
   user: User
@@ -34,12 +35,15 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
         </Link>
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <Link
-              href={`/user/${post.user.clerkId}`}
-              className="font-semibold hover:underline"
-            >
-              {post.user.username}
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/user/${post.user.clerkId}`}
+                className="font-semibold hover:underline"
+              >
+                {post.user.username}
+              </Link>
+              <FollowButton targetUserId={post.user.clerkId} className="ml-2" />
+            </div>
             <span className="text-sm text-gray-500">
               {formatDistanceToNow(new Date(post.createdAt), {
                 addSuffix: true,

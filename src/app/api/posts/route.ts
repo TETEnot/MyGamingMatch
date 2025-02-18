@@ -1,58 +1,87 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient, Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
-    const url = new URL(req.url);
-    const userIdParam = url.searchParams.get('userId');
-    
-    let where = {};
-    if (userIdParam) {
-      where = {
-        user: {
-          clerkId: userIdParam
-        }
-      };
+    const { userId } = auth();
+    let currentUser = null;
+
+    if (userId) {
+      currentUser = await prisma.user.findUnique({
+        where: { clerkId: userId }
+      });
     }
 
-    const posts = await prisma.post.findMany({
-      where,
-      orderBy: {
-        createdAt: Prisma.SortOrder.desc
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    let followedUserIds: number[] = [];
+    if (currentUser) {
+      const following = await prisma.follow.findMany({
+        where: { followerId: currentUser.id },
+        select: { followingId: true }
+      });
+      followedUserIds = following.map((follow: { followingId: number }) => follow.followingId);
+    }
+
+    const includeOptions = {
+      user: {
+        select: {
+          id: true,
+          clerkId: true,
+          username: true,
+          avatarUrl: true,
+          imageUrl: true,
+          statusMessage: true
+        }
       },
-      include: {
-        user: true,
-        likes: true
-      }
+      likes: true,
+    } satisfies Prisma.PostInclude;
+
+    // フォロー中のユーザーの最近の投稿を取得
+    const followedUserPosts = currentUser ? await prisma.post.findMany({
+      where: {
+        userId: { in: followedUserIds },
+        createdAt: { gte: threeDaysAgo }
+      },
+      include: includeOptions,
+      orderBy: { createdAt: 'desc' }
+    }) : [];
+
+    // その他のユーザーの投稿を取得
+    const otherPosts = await prisma.post.findMany({
+      where: {
+        userId: { notIn: [...followedUserIds, currentUser?.id || -1] },
+        NOT: currentUser ? {
+          bads: {
+            some: { userId: currentUser.id }
+          }
+        } : undefined
+      },
+      include: includeOptions,
+      orderBy: { createdAt: 'desc' }
     });
 
-    const formattedPosts = posts.map(post => ({
+    // 投稿を結合して返す
+    const posts = [...followedUserPosts, ...otherPosts].map(post => ({
       id: post.id,
       title: post.title,
       content: post.content,
-      createdAt: post.createdAt,
       userId: post.user.clerkId,
+      date: post.createdAt.toISOString(),
       username: post.user.username,
       avatarUrl: post.user.avatarUrl,
       imageUrl: post.user.imageUrl,
       statusMessage: post.user.statusMessage,
-      likeCount: post.likeCount,
-      likes: post.likes
+      likeCount: post.likes.length
     }));
 
-    return NextResponse.json(formattedPosts);
+    return NextResponse.json(posts);
   } catch (error) {
     console.error('Error fetching posts:', error);
-    return NextResponse.json(
-      { error: '投稿の取得に失敗しました' },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    return new NextResponse('Internal error', { status: 500 });
   }
 }
 
@@ -121,7 +150,5 @@ export async function POST(req: Request) {
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

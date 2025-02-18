@@ -1,24 +1,17 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@clerk/nextjs/server';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Fetching user with clerkId:', params.id);
-
     if (!params.id) {
       return NextResponse.json(
         { error: 'ユーザーIDが指定されていません' },
         { status: 400 }
       );
     }
-
-    console.log('Searching for user with clerkId:', params.id);
 
     const user = await prisma.user.findUnique({
       where: { clerkId: params.id },
@@ -28,14 +21,15 @@ export async function GET(
         avatarUrl: true,
         imageUrl: true,
         statusMessage: true,
-        email: true,
         clerkId: true,
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+          },
+        },
       },
     });
-
-    console.log('Database query result:', user);
-
-    console.log('Found user:', user);
 
     if (!user) {
       return NextResponse.json(
@@ -54,7 +48,5 @@ export async function GET(
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 } 

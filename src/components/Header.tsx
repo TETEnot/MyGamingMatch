@@ -15,12 +15,22 @@ import { pusherClient } from '@/lib/pusher';
 //   description: string;
 // }
 
-interface Notification {
+interface LikeNotification {
+  type: 'LIKE';
   postId: number;
   likedBy: string;
   postTitle: string;
   timestamp: string;
 }
+
+interface FollowNotification {
+  type: 'FOLLOW';
+  actorName: string;
+  actorId: string;
+  timestamp: string;
+}
+
+type Notification = LikeNotification | FollowNotification;
 
 const Header = () => {
   const { isSignedIn, user } = useUser();
@@ -38,13 +48,25 @@ const Header = () => {
 
     const channel = pusherClient.subscribe(channelName);
 
-    channel.bind('new-like', (data: Notification) => {
+    channel.bind('new-like', (data: LikeNotification) => {
       console.log('Header: Received notification:', data);
       setNotifications(prev => [data, ...prev]);
       toast.success(
         <div>
           <p className="font-bold">{data.likedBy}さんがいいねしました！</p>
           <p className="text-sm">投稿「{data.postTitle}」</p>
+        </div>
+      );
+    });
+
+    channel.bind('new-follow', (data: FollowNotification) => {
+      console.log('Header: Received follow notification:', data);
+      setNotifications(prev => [data, ...prev]);
+      toast.success(
+        <div>
+          <Link href={`/user/${data.actorId}`} className="hover:underline">
+            <p className="font-bold">{data.actorName}さんがあなたをフォローしました！</p>
+          </Link>
         </div>
       );
     });
@@ -94,6 +116,34 @@ const Header = () => {
   //   setNewCard({ ...newCard, description: e.target.value });
   // };
 
+  const renderNotificationContent = (notification: Notification) => {
+    if (notification.type === 'LIKE') {
+      return (
+        <div className="py-2 border-b border-gray-200 last:border-0">
+          <p className="text-gray-800 text-sm">
+            {notification.likedBy}さんが「{notification.postTitle}」にいいねしました
+          </p>
+          <p className="text-gray-500 text-xs">
+            {new Date(notification.timestamp).toLocaleString('ja-JP')}
+          </p>
+        </div>
+      );
+    } else if (notification.type === 'FOLLOW') {
+      return (
+        <div className="py-2 border-b border-gray-200 last:border-0">
+          <Link href={`/user/${notification.actorId}`} className="hover:underline">
+            <p className="text-gray-800 text-sm">
+              {notification.actorName}さんがあなたをフォローしました
+            </p>
+          </Link>
+          <p className="text-gray-500 text-xs">
+            {new Date(notification.timestamp).toLocaleString('ja-JP')}
+          </p>
+        </div>
+      );
+    }
+  };
+
   return (
     <header className="flex justify-between items-center p-4 bg-gray-800 text-white">
       <Link href="/" className="flex items-center hover:opacity-80">
@@ -131,16 +181,8 @@ const Header = () => {
                       <p className="text-gray-600 text-sm">通知はありません</p>
                     ) : (
                       notifications.map((notification, index) => (
-                        <div
-                          key={`${notification.postId}-${notification.timestamp}`}
-                          className="py-2 border-b border-gray-200 last:border-0"
-                        >
-                          <p className="text-gray-800 text-sm">
-                            {notification.likedBy}さんが「{notification.postTitle}」にいいねしました
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            {new Date(notification.timestamp).toLocaleString('ja-JP')}
-                          </p>
+                        <div key={`${notification.timestamp}-${index}`}>
+                          {renderNotificationContent(notification)}
                         </div>
                       ))
                     )}

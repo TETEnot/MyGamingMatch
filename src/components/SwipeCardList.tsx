@@ -5,7 +5,7 @@ import TinderCard from 'react-tinder-card';
 import { useUser } from '@clerk/nextjs';
 import Image from 'next/image';
 import PostAuthor from './PostAuthor';
-import { Heart } from 'lucide-react'
+import { Heart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Card {
@@ -22,86 +22,46 @@ interface Card {
 
 const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dispatch<React.SetStateAction<Card[]>> }) => {
   const { isSignedIn, user } = useUser();
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [newCard, setNewCard] = useState({ game: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hiddenPostIds, setHiddenPostIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
-  const onSwipe = async (direction: string) => {
-    console.log('あなたはスワイプしました: ' + direction);
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % cards.length);
+  const swipeThreshold = 150; // スワイプを検知する閾値
 
-    if (direction === 'right' && isSignedIn && user) {
-      const currentCard = cards[currentIndex];
-      try {
-        const response = await fetch('/api/likes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ postId: currentCard.id }),
-        });
-
-        if (response.ok) {
-          // いいねした投稿を非表示にする
-          setHiddenPostIds(prev => [...prev, currentCard.id]);
-          // カード一覧から削除
-          setCards(prev => prev.filter(card => card.id !== currentCard.id));
-        } else {
-          console.error('いいねの送信に失敗しました');
-        }
-      } catch (error) {
-        console.error('いいねエラー:', error);
-      }
-    }
-  };
-
-  const onCardLeftScreen = (myIdentifier: string) => {
-    console.log(myIdentifier + ' が画面から消えました');
-  };
-
-  const handleLike = async (card: Card) => {
+  const handleSwipe = async (direction: string, cardId: number) => {
     if (!isSignedIn || !user || isLoading) return;
 
     setIsLoading(true);
     try {
-      console.log('Sending like request for card:', card)
-
-      const response = await fetch('/api/likes', {
+      const endpoint = direction === 'right' ? '/api/likes' : '/api/bads';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ postId: card.id }),
+        body: JSON.stringify({ postId: cardId }),
       });
 
-      const data = await response.json();
-      console.log('Like response:', data)
-
-      if (response.ok) {
-        setHiddenPostIds(prev => [...prev, card.id]);
-        setCards(prev => prev.filter(c => c.id !== card.id));
-      } else {
-        console.error('いいねの送信に失敗しました:', data.error, data.details);
-        alert(`いいねの送信に失敗しました: ${data.error}\n${data.details || ''}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'リクエストに失敗しました');
       }
+
+      setCards(prev => prev.filter(card => card.id !== cardId));
+      setCurrentCardIndex(prevIndex => prevIndex + 1);
     } catch (error) {
-      console.error('いいねエラー:', error);
-      alert('エラーが発生しました。もう一度お試しください。');
+      console.error('スワイプエラー:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   async function handleAddNewCard() {
-    if (!isSignedIn || !user || !newCard.game || !newCard.description) {
-      return;
-    }
+    if (!isSignedIn || !user || !newCard.game || !newCard.description) return;
 
     setIsSubmitting(true);
-
     try {
       const response = await fetch('/api/posts', {
         method: 'POST',
@@ -120,8 +80,6 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
       }
 
       const { data } = await response.json();
-      
-      // 新しい投稿をカードリストに追加
       const newCardData: Card = {
         id: data.id,
         title: data.title,
@@ -145,69 +103,59 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
     }
   }
 
-  // 表示するカードをフィルタリング
-  const visibleCards = cards.filter(card => !hiddenPostIds.includes(card.id));
-
   const gameOptions = [
     'APEX', 'Fortnite', '原神', 'Maincraft', 'VALORANT',
     'MARVEL Rivals', 'MARVEL SNAP', 'モンスターストライク', 'ブロスタ', '荒野行動'
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <div className="relative h-[600px] w-80 mt-20">
-        {[...visibleCards].reverse().map((card, index) => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <div className="relative h-[600px] w-80">
+        {cards.map((card, index) => (
           <TinderCard
-            key={`${card.userId}-${card.id}-${index}`}
-            onSwipe={onSwipe}
-            onCardLeftScreen={() => onCardLeftScreen(card.userId.toString())}
+            key={card.id}
+            onSwipe={(dir) => handleSwipe(dir, card.id)}
             preventSwipe={['up', 'down']}
-            className="absolute left-0 right-0"
+            swipeRequirementType="position"
+            swipeThreshold={swipeThreshold}
+            className={cn(
+              "absolute w-full h-full transition-opacity duration-200",
+              index < currentCardIndex ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
           >
-            <div
-              className={`select-none bg-white p-6 rounded-lg shadow-lg w-80 min-h-[400px] text-black ${
-                index < currentIndex ? 'hidden' : 'block'
-              }`}
-            >
+            <div className="select-none bg-white p-6 rounded-xl shadow-lg w-full min-h-[400px] text-black transform transition-all duration-200 hover:shadow-xl">
               <div className="mb-4">
                 <PostAuthor userId={card.userId} />
               </div>
-              <h3 className="text-xl font-bold mb-2">{card.title}</h3>
-              <p className="mt-2 mb-4 min-h-[60px] text-gray-700">{card.content}</p>
+              <h3 className="text-xl font-bold mb-2 text-gray-900">{card.title}</h3>
+              <p className="mt-2 mb-4 min-h-[60px] text-gray-700 leading-relaxed">{card.content}</p>
               <p className="text-xs text-gray-400 mb-4">
                 {new Date(card.date || Date.now()).toLocaleString('ja-JP')}
               </p>
               <div className="flex justify-between mt-auto">
                 <button 
-                  onClick={() => handleLike(card)}
+                  onClick={() => handleSwipe('right', card.id)}
                   disabled={!isSignedIn || isLoading}
                   className={cn(
-                    "flex items-center gap-2 p-2 rounded-full transition-all duration-200",
-                    "hover:bg-red-50",
+                    "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
+                    "hover:bg-red-50 hover:text-red-500",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
-                  <Heart
-                    className={cn(
-                      "w-6 h-6 transition-colors duration-200",
-                      hiddenPostIds.includes(card.id) ? "fill-red-500 text-red-500" : "text-gray-500"
-                    )}
-                  />
-                  <span className={cn(
-                    "text-sm font-medium",
-                    hiddenPostIds.includes(card.id) ? "text-red-500" : "text-gray-500"
-                  )}>
-                    いいね
-                  </span>
+                  <Heart className="w-6 h-6 transition-colors" />
+                  <span className="text-sm font-medium">いいね</span>
                 </button>
                 <button 
-                  onClick={() => onSwipe('left')}
+                  onClick={() => handleSwipe('left', card.id)}
+                  disabled={!isSignedIn || isLoading}
                   className={cn(
-                    "flex items-center gap-2 p-2 rounded-full transition-all duration-200",
-                    "hover:bg-gray-100",
-                    "text-gray-500"
+                    "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
+                    "hover:bg-gray-100 hover:text-gray-700",
+                    "text-gray-500",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
+                  <X className="w-6 h-6" />
                   <span className="text-sm font-medium">スキップ</span>
                 </button>
               </div>
@@ -215,6 +163,11 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
           </TinderCard>
         ))}
       </div>
+
+      {/* スワイプ方向のインジケーター */}
+      <div className="fixed top-1/2 left-4 transform -translate-y-1/2 text-2xl text-red-500 opacity-50">←スキップ</div>
+      <div className="fixed top-1/2 right-4 transform -translate-y-1/2 text-2xl text-green-500 opacity-50">いいね→</div>
+
       {isSignedIn && (
         <>
           <button

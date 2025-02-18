@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import { useUser } from '@clerk/nextjs';
+import FollowButton from '@/components/FollowButton';
+import FollowStats from '@/components/FollowStats';
 
 interface UserProfile {
   id: number;
@@ -12,6 +14,11 @@ interface UserProfile {
   imageUrl: string | null;
   statusMessage: string | null;
   email: string;
+  clerkId: string;
+  _count?: {
+    followers: number;
+    following: number;
+  };
 }
 
 interface UserPost {
@@ -152,12 +159,23 @@ const UserProfileClient: React.FC<UserProfileClientProps> = ({ id }) => {
                 priority
               />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-black">{userProfile.username}</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-black">{userProfile.username}</h1>
+                {currentUser?.id !== userProfile.clerkId && (
+                  <FollowButton targetUserId={userProfile.clerkId} />
+                )}
+              </div>
               {userProfile.statusMessage && (
                 <p className="text-black mt-2">{userProfile.statusMessage}</p>
               )}
-              <p className="text-sm text-black">{userProfile.email}</p>
+              <div className="mt-4">
+                <FollowStats
+                  userId={userProfile.clerkId}
+                  followersCount={userProfile._count?.followers || 0}
+                  followingCount={userProfile._count?.following || 0}
+                />
+              </div>
             </div>
           </div>
         </div>
