@@ -1,9 +1,20 @@
-module.exports = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
-    domains: [
-      'my-game-matching.s3.ap-northeast-1.amazonaws.com',
-      'img.clerk.com',
-      'localhost',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.clerk.dev',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+        pathname: '/**',
+      },
     ],
+    domains: ['localhost'],
   },
-}; 
+};
+
+module.exports = nextConfig; 

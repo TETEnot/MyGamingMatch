@@ -1,15 +1,25 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { authMiddleware } from "@clerk/nextjs/server";
 
-export function middleware(request: NextRequest) {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+// This example protects all routes including api/trpc routes
+// Please edit this to allow other routes to be public as needed.
+// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
+export default authMiddleware({
+  // "/"とAPIルートを公開ルートとして設定
+  publicRoutes: [
+    "/",
+    "/sign-in",
+    "/sign-up",
+    "/api/webhook(.*)",
+    "/api/user(.*)", // ユーザー情報APIを公開ルートとして追加
+  ],
+});
 
-  if (!token || token !== 'dummy-token') {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
-
-  return NextResponse.next();
-}
-
+// Middleware設定を更新
 export const config = {
-  matcher: ['/protected'],
+  matcher: [
+    // 除外するパス
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    // APIルートを含める
+    "/(api|trpc)(.*)"
+  ],
 }; 

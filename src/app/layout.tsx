@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import Notifications from '@/components/Notifications';
+import { Toaster } from 'react-hot-toast';
+import ClientComponentWrapper from '@/components/ClientComponentWrapper';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -24,16 +23,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={{
+      baseTheme: undefined,
+      variables: {
+        colorPrimary: '#000000',
+      },
+      elements: {
+        formButtonPrimary: 'bg-black hover:bg-gray-800 text-sm normal-case',
+      },
+    }}>
       <html lang="ja">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          {/* <header className="flex justify-between items-center p-4 bg-gray-800 text-white">
-            <h1 className="text-2xl">私たちのアプリ</h1>
-            <AuthButtons />
-          </header> */}
-          <main>{children}</main>
+        <body className={`${inter.variable} font-sans antialiased`}>
+          <ErrorBoundary>
+            <ClientComponentWrapper>
+              <Notifications />
+              <Toaster position="top-right" />
+            </ClientComponentWrapper>
+            <main className="min-h-screen bg-white">{children}</main>
+          </ErrorBoundary>
         </body>
       </html>
     </ClerkProvider>

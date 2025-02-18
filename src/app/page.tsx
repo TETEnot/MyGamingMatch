@@ -1,53 +1,82 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Header from '../components/Header';
 import { useUser } from '@clerk/nextjs';
 import SwipeCardList from "../components/SwipeCardList";
 
-const HomePage = () => {
-  const { isSignedIn } = useUser();
-  const [cards, setCards] = useState([
-    {
-      name: 'アレックス',
-      game: 'ゲームA',
-      description: '一緒にプレイしませんか？',
-      date: '2023-10-01',
-      username: 'アレックス',
-    },
-    {
-      name: 'ジョン',
-      game: 'ゲームB',
-      description: '初心者歓迎！',
-      date: '2023-10-02',
-      username: 'ジョン',
-    },
-    {
-      name: 'ジェーン',
-      game: 'ゲームC',
-      description: '楽しくプレイしましょう！',
-      date: '2023-10-03',
-      username: 'ジェーン',
-    },
-  ]);
+interface Card {
+  id: number;
+  title: string;
+  content: string;
+  userId: number;
+  date: string;
+  username: string;
+  avatarUrl?: string;
+  imageUrl?: string;
+  statusMessage?: string;
+}
 
-  useEffect(() => {
+const HomePage = () => {
+  const { isSignedIn, isLoaded } = useUser();
+  const [cards, setCards] = React.useState<Card[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await fetch('/api/example');
+        setIsLoading(true);
+        const response = await fetch('/api/posts');
+        console.log('Response status:', response.status);
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json();
+          console.error('Error data:', errorData);
+          throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
         }
+
         const data = await response.json();
         console.log('Fetched posts:', data);
         setCards(data);
       } catch (error) {
-        console.error('データ取得エラー:', error);
+        console.error('データ取得エラーの詳細:', error);
+        setError(error instanceof Error ? error.message : '不明なエラー');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchPosts();
-  }, []);
+    if (isLoaded) {
+      fetchPosts();
+    }
+  }, [isLoaded]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Header />
+        <main className="p-8 max-w-2xl mx-auto bg-white shadow-md rounded-lg mt-8">
+          <div className="text-center">
+            <p>読み込み中...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Header />
+        <main className="p-8 max-w-2xl mx-auto bg-white shadow-md rounded-lg mt-8">
+          <div className="text-center text-red-500">
+            <p>エラーが発生しました: {error}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

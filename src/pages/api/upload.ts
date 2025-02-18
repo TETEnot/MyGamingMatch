@@ -1,7 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingForm, File } from 'formidable';
 import fs from 'fs';
-import AWS from 'aws-sdk';
+import path from 'path';
+import { nanoid } from 'nanoid';
 
 export const config = {
   api: {
@@ -9,56 +10,57 @@ export const config = {
   },
 };
 
-type FormidableFields = Record<string, string | string[]>;
-type FormidableFiles = Record<string, File | File[]>;
-
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
-});
-
-const s3 = new AWS.S3();
+const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const form = new IncomingForm();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  form.parse(req, (err: Error | null, fields: FormidableFields, files: FormidableFiles) => {
-    if (err) {
-      console.error('Formidable error:', err);
-      res.status(500).json({ error: '画像のアップロードに失敗しました' });
-      return;
+  try {
+    // アップロードディレクトリが存在しない場合は作成
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
+
+    const form = new IncomingForm({
+      uploadDir: UPLOADS_DIR,
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+    });
+
+    const { fields, files } = await new Promise<{ fields: any; files: any }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        resolve({ fields, files });
+      });
+    });
 
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
     if (!file) {
-      res.status(400).json({ error: 'ファイルが見つかりません' });
-      return;
+      return res.status(400).json({ error: 'ファイルが見つかりません' });
     }
 
-    const fileContent = fs.readFileSync(file.filepath);
-    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    // ファイル名を生成
+    const fileExt = path.extname(file.originalFilename || '');
+    const fileName = `${nanoid()}${fileExt}`;
+    const newPath = path.join(UPLOADS_DIR, fileName);
 
-    if (!bucketName) {
-      console.error('Bucket name is not defined');
-      res.status(500).json({ error: 'バケット名が定義されていません' });
-      return;
-    }
+    // ファイルを移動
+    fs.renameSync(file.filepath, newPath);
 
-    const params = {
-      Bucket: bucketName,
-      Key: file.newFilename,
-      Body: fileContent,
-      ContentType: file.type || 'image/jpeg',
-    };
+    // 開発環境用のURL
+    const fileUrl = `/uploads/${fileName}`;
 
-    s3.upload(params, (s3Err: Error | null, data: AWS.S3.ManagedUpload.SendData) => {
-      if (s3Err) {
-        console.error('S3 upload error:', s3Err);
-        res.status(500).json({ error: 'ファイルのアップロードに失敗しました' });
-        return;
-      }
-      res.status(200).json({ url: data.Location });
+    res.status(200).json({ 
+      url: fileUrl,
+      success: true 
     });
-  });
+  } catch (error) {
+    console.error('アップロードエラー:', error);
+    res.status(500).json({ 
+      error: 'ファイルのアップロードに失敗しました',
+      details: error instanceof Error ? error.message : '不明なエラー'
+    });
+  }
 }
