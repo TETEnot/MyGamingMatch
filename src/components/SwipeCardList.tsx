@@ -134,7 +134,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
         statusMessage: data.statusMessage,
       };
 
-      setCards(prevCards => [...prevCards, newCardData]);
+      setCards(prevCards => [newCardData, ...prevCards]);
       setNewCard({ game: '', description: '' });
       setShowForm(false);
     } catch (error) {
@@ -156,7 +156,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="relative h-[600px] w-80 mt-20">
-        {visibleCards.map((card, index) => (
+        {[...visibleCards].reverse().map((card, index) => (
           <TinderCard
             key={`${card.userId}-${card.id}-${index}`}
             onSwipe={onSwipe}

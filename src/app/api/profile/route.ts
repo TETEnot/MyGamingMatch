@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server';
 
 const prisma = new PrismaClient();
 
@@ -7,22 +8,14 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const clerkId = searchParams.get('clerkId');
-    const authHeader = request.headers.get('Authorization');
+    const { userId } = await auth();
 
     console.log('Received request for clerkId:', clerkId);
-    console.log('Authorization header:', authHeader);
 
     if (!clerkId) {
       return NextResponse.json(
         { error: 'Clerk IDが指定されていません' },
         { status: 400 }
-      );
-    }
-
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
       );
     }
 

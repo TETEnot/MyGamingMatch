@@ -9,7 +9,7 @@ interface Card {
   id: number;
   title: string;
   content: string;
-  userId: number;
+  userId: string;
   date: string;
   username: string;
   avatarUrl?: string;
@@ -38,7 +38,15 @@ const HomePage = () => {
 
         const data = await response.json();
         console.log('Fetched posts:', data);
-        setCards(data);
+        const formattedCards = data
+          .map((post: any) => ({
+            ...post,
+            date: post.createdAt
+          }))
+          .sort((a: Card, b: Card) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+        setCards(formattedCards);
       } catch (error) {
         console.error('データ取得エラーの詳細:', error);
         setError(error instanceof Error ? error.message : '不明なエラー');

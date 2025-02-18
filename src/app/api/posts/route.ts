@@ -10,19 +10,17 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const userIdParam = url.searchParams.get('userId');
     
-    if (!userIdParam) {
-      return NextResponse.json(
-        { error: 'ユーザーIDは必須です' },
-        { status: 400 }
-      );
-    }
-
-    const posts = await prisma.post.findMany({
-      where: {
+    let where = {};
+    if (userIdParam) {
+      where = {
         user: {
           clerkId: userIdParam
         }
-      },
+      };
+    }
+
+    const posts = await prisma.post.findMany({
+      where,
       orderBy: {
         createdAt: Prisma.SortOrder.desc
       },
