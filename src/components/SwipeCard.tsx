@@ -66,12 +66,6 @@ const SwipeCard = ({ post, onRemove, isLiked, likeCount, handleLikeClick }) => {
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={handleBadClick}
-            className="text-gray-500 hover:text-red-500 transition-colors"
-          >
-            <XIcon className="w-6 h-6" />
-          </button>
-          <button
             onClick={handleLikeClick}
             className={`transition-colors ${
               isLiked ? "text-pink-500" : "text-gray-500 hover:text-pink-500"
@@ -79,6 +73,12 @@ const SwipeCard = ({ post, onRemove, isLiked, likeCount, handleLikeClick }) => {
           >
             <HeartIcon className="w-6 h-6" />
             <span className="text-sm ml-1">{likeCount}</span>
+          </button>
+          <button
+            onClick={handleBadClick}
+            className="text-gray-500 hover:text-red-500 transition-colors"
+          >
+            <XIcon className="w-6 h-6" />
           </button>
         </div>
       </div>

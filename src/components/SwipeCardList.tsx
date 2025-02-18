@@ -7,6 +7,7 @@ import Image from 'next/image';
 import PostAuthor from './PostAuthor';
 import { Heart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'react-hot-toast';
 
 interface Card {
   id: number;
@@ -31,6 +32,30 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
   const swipeThreshold = 150; // スワイプを検知する閾値
 
   const handleSwipe = async (direction: string, cardId: number) => {
+    if (direction === 'right') {
+      try {
+        const response = await fetch('/api/likes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ postId: cardId }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          toast.error(data.error || 'いいねの処理中にエラーが発生しました');
+          return;
+        }
+
+        toast.success('いいねしました！');
+        setCards(prevCards => prevCards.filter(card => card.id !== cardId));
+      } catch (error) {
+        console.error('スワイプエラー:', error);
+        toast.error('エラーが発生しました。もう一度お試しください。');
+      }
+    }
     if (!isSignedIn || !user || isLoading) return;
 
     setIsLoading(true);
@@ -133,18 +158,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
                 {new Date(card.date || Date.now()).toLocaleString('ja-JP')}
               </p>
               <div className="flex justify-between mt-auto">
-                <button 
-                  onClick={() => handleSwipe('right', card.id)}
-                  disabled={!isSignedIn || isLoading}
-                  className={cn(
-                    "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
-                    "hover:bg-red-50 hover:text-red-500",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                >
-                  <Heart className="w-6 h-6 transition-colors" />
-                  <span className="text-sm font-medium">いいね</span>
-                </button>
+                
                 <button 
                   onClick={() => handleSwipe('left', card.id)}
                   disabled={!isSignedIn || isLoading}
@@ -157,6 +171,19 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
                 >
                   <X className="w-6 h-6" />
                   <span className="text-sm font-medium">スキップ</span>
+                </button>
+
+                <button 
+                  onClick={() => handleSwipe('right', card.id)}
+                  disabled={!isSignedIn || isLoading}
+                  className={cn(
+                    "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
+                    "hover:bg-red-50 hover:text-red-500",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  <Heart className="w-6 h-6 transition-colors" />
+                  <span className="text-sm font-medium">いいね</span>
                 </button>
               </div>
             </div>
