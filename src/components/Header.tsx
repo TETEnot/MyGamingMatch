@@ -5,7 +5,7 @@ import AuthButtons from './AuthButtons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { Bell } from 'lucide-react';
+import { Bell, Search, Settings, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { pusherClient } from '@/lib/pusher';
 
@@ -32,13 +32,38 @@ interface FollowNotification {
 
 type Notification = LikeNotification | FollowNotification;
 
+interface DBUser {
+  id: number;
+  clerkId: string;
+  username: string;
+  avatarUrl: string | null;
+  imageUrl: string | null;
+  statusMessage: string | null;
+}
+
 const Header = () => {
   const { isSignedIn, user } = useUser();
-  const [username, setUsername] = useState<string>('ゲスト');
-  const [imageUrl, setImageUrl] = useState<string>('/default-avatar.png');
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  // const [newCard, setNewCard] = useState<NewCard>({ game: '', description: '' });
+  const [currentUser, setCurrentUser] = useState<DBUser | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      if (!isSignedIn || !user) return;
+
+      try {
+        const response = await fetch(`/api/user/${user.id}`);
+        if (!response.ok) {
+          throw new Error('ユーザー情報の取得に失敗しました');
+        }
+        const { data } = await response.json();
+        setCurrentUser(data);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    }
+
+    fetchUser();
+  }, [isSignedIn, user]);
 
   useEffect(() => {
     if (!isSignedIn || !user) return;
@@ -77,40 +102,6 @@ const Header = () => {
     };
   }, [isSignedIn, user]);
 
-  useEffect(() => {
-    async function fetchUser() {
-      if (!isSignedIn || !user) {
-        setUsername('ゲスト');
-        setImageUrl('/default-avatar.png');
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/user/${user.id}`);
-        
-        if (!response.ok) {
-          throw new Error('ユーザー情報の取得に失敗しました');
-        }
-
-        const { data } = await response.json();
-
-        if (data) {
-          setUsername(data.username || user.fullName || 'ゲスト');
-          setImageUrl(data.avatarUrl || data.imageUrl || user.imageUrl || '/default-avatar.png');
-        } else {
-          setUsername(user.fullName || 'ゲスト');
-          setImageUrl(user.imageUrl || '/default-avatar.png');
-        }
-      } catch (error) {
-        console.error('Header: Error fetching user:', error);
-        setUsername(user.fullName || 'ゲスト');
-        setImageUrl(user.imageUrl || '/default-avatar.png');
-      }
-    }
-
-    fetchUser();
-  }, [isSignedIn, user]);
-
   // 未使用の関数を削除またはコメントアウト
   // const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
   //   setNewCard({ ...newCard, description: e.target.value });
@@ -145,73 +136,49 @@ const Header = () => {
   };
 
   return (
-    <header className="flex justify-between items-center p-4 bg-gray-800 text-white">
-      <Link href="/" className="flex items-center hover:opacity-80">
-        <div className="relative w-40 h-10">
-          <Image
-            src="/images/logo.png"
-            alt="アプリロゴ"
-            fill
-            className="object-contain brightness-0 invert"
-            priority
-          />
-        </div>
-      </Link>
-      <div className="flex items-center gap-4">
-        {isSignedIn && (
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 hover:bg-gray-700 rounded-full relative"
-            >
-              <Bell className="w-6 h-6" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50">
-                <div className="p-4">
-                  <h3 className="text-gray-800 font-semibold mb-2">通知</h3>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <p className="text-gray-600 text-sm">通知はありません</p>
-                    ) : (
-                      notifications.map((notification, index) => (
-                        <div key={`${notification.timestamp}-${index}`}>
-                          {renderNotificationContent(notification)}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        <div className="relative w-8 h-8">
-          <Image
-            src={imageUrl}
-            alt="Profile Icon"
-            fill
-            sizes="32px"
-            className="rounded-full object-cover"
-            priority
-          />
-        </div>
-        <Link href={isSignedIn && user ? `/profile` : '/sign-in'} className="text-white cursor-pointer hover:underline">
-          {username}
-        </Link>
-        {isSignedIn && (
-          <Link href="/likes" className="text-white cursor-pointer hover:underline">
-            いいね一覧
+    <header className="bg-white shadow-sm">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-gray-900">
+            ゲームマッチング
           </Link>
-        )}
-        <AuthButtons />
+
+          <div className="flex items-center space-x-4">
+            {isSignedIn && (
+              <>
+                <Link
+                  href="/search"
+                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  title="検索"
+                >
+                  <Search className="w-6 h-6" />
+                </Link>
+                <Link
+                  href="/likes"
+                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  title="いいね一覧"
+                >
+                  <Heart className="w-6 h-6" />
+                </Link>
+                <Link
+                  href="/notifications"
+                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  title="通知"
+                >
+                  <Bell className="w-6 h-6" />
+                </Link>
+                <Link
+                  href="/profile"
+                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  title="プロフィール設定"
+                >
+                  <Settings className="w-6 h-6" />
+                </Link>
+              </>
+            )}
+            {!isSignedIn && <AuthButtons />}
+          </div>
+        </div>
       </div>
     </header>
   );

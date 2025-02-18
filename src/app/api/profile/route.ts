@@ -1,22 +1,13 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@clerk/nextjs/server';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const clerkId = searchParams.get('clerkId');
-    const { userId } = await auth();
-
-    console.log('Received request for clerkId:', clerkId);
 
     if (!clerkId) {
-      return NextResponse.json(
-        { error: 'Clerk IDが指定されていません' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Clerk ID is required' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
@@ -25,35 +16,28 @@ export async function GET(request: Request) {
         id: true,
         username: true,
         email: true,
+        statusMessage: true,
         avatarUrl: true,
         imageUrl: true,
-        statusMessage: true,
+        createdAt: true,
       },
     });
 
-    console.log('Found user:', user);
-
     if (!user) {
-      return NextResponse.json(
-        { error: 'ユーザーが見つかりません' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: user,
-    });
+    console.log('Fetched user data:', user);
+
+    return NextResponse.json({ data: user });
   } catch (error) {
-    console.error('Error in profile API:', error);
+    console.error('Error fetching profile:', error);
     return NextResponse.json(
-      {
-        error: 'ユーザー情報の取得に失敗しました',
-        details: error instanceof Error ? error.message : '不明なエラー',
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : '不明なエラー'
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 } 

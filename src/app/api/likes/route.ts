@@ -6,134 +6,112 @@ import { pusherServer } from '@/lib/pusher'
 export async function POST(req: Request) {
   try {
     const { userId: clerkId } = await auth()
-    console.log('Auth userId:', clerkId) // デバッグログ
-
     if (!clerkId) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
     }
 
-    const body = await req.json()
-    const { postId } = body
-    console.log('Received postId:', postId) // デバッグログ
-
+    const { postId } = await req.json()
     if (!postId) {
-      return new NextResponse('Post ID is required', { status: 400 })
+      return NextResponse.json(
+        { error: '投稿IDは必須です' },
+        { status: 400 }
+      )
     }
 
+    // 現在のユーザーを取得
     const user = await prisma.user.findUnique({
       where: { clerkId }
     })
-    console.log('Found user:', user) // デバッグログ
 
     if (!user) {
-      return new NextResponse('User not found', { status: 404 })
+      return NextResponse.json(
+        { error: 'ユーザーが見つかりません' },
+        { status: 404 }
+      )
     }
 
     // 投稿の存在確認
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      include: { user: true }
+      include: {
+        user: true
+      }
     })
-    console.log('Found post:', post) // デバッグログ
 
     if (!post) {
-      return new NextResponse('Post not found', { status: 404 })
+      return NextResponse.json(
+        { error: '投稿が見つかりません' },
+        { status: 404 }
+      )
     }
 
     // 既存のいいねをチェック
     const existingLike = await prisma.like.findFirst({
       where: {
-        postId: postId,
+        postId,
         userId: user.id
       }
     })
-    console.log('Existing like:', existingLike) // デバッグログ
 
     if (existingLike) {
-      return new NextResponse('Already liked', { status: 400 })
-    }
-
-    try {
-      // トランザクションでいいねを作成し、投稿のいいね数を更新
-      const [like] = await prisma.$transaction([
-        prisma.like.create({
-          data: {
-            postId: postId,
-            userId: user.id
-          }
-        }),
-        prisma.post.update({
-          where: { id: postId },
-          data: { likeCount: { increment: 1 } }
-        })
-      ])
-      console.log('Created like:', like) // デバッグログ
-
-      // 通知をトリガー
-      if (post.userId !== user.id) {
-        try {
-          const notificationData = {
-            postId: post.id,
-            likedBy: user.username,
-            postTitle: post.title,
-            timestamp: new Date().toISOString()
-          };
-
-          const channelName = `user-${post.user.clerkId}`;
-          console.log('API: Preparing to send notification:', {
-            channelName,
-            data: notificationData,
-            post,
-            user,
-            pusherConfig: {
-              appId: process.env.PUSHER_APP_ID,
-              key: process.env.NEXT_PUBLIC_PUSHER_KEY,
-              secret: '***',
-              cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER
-            }
-          });
-
-          await pusherServer.trigger(
-            channelName,
-            'new-like',
-            notificationData
-          ).catch((error) => {
-            console.error('API: Pusher trigger error:', error);
-            throw error;
-          });
-
-          console.log('API: Notification sent successfully to channel:', channelName);
-        } catch (notificationError) {
-          console.error('API: Error sending notification:', {
-            error: notificationError,
-            stack: notificationError instanceof Error ? notificationError.stack : undefined,
-            channelName: `user-${post.user.clerkId}`,
-            postId: post.id,
-            userId: user.id
-          });
-        }
-      } else {
-        console.log('API: Skipping notification for self-like');
-      }
-
-      return NextResponse.json({ success: true, data: like })
-    } catch (transactionError) {
-      console.error('Transaction error:', transactionError)
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'Transaction failed', 
-          details: transactionError instanceof Error ? transactionError.message : 'Unknown transaction error' 
-        }), 
-        { status: 500 }
+      return NextResponse.json(
+        { error: '既にいいね済みです' },
+        { status: 400 }
       )
     }
+
+    // いいねを作成
+    const like = await prisma.like.create({
+      data: {
+        postId,
+        userId: user.id
+      }
+    })
+
+    // 投稿のいいね数を更新
+    await prisma.post.update({
+      where: { id: postId },
+      data: {
+        likeCount: {
+          increment: 1
+        }
+      }
+    })
+
+    // 通知の送信
+    try {
+      const notificationData = {
+        type: 'LIKE',
+        postId: post.id,
+        likedBy: user.username || 'ゲスト',
+        postTitle: post.title,
+        timestamp: new Date().toISOString()
+      }
+
+      const channelName = `user-${post.user.clerkId}`
+      await pusherServer.trigger(
+        channelName,
+        'new-like',
+        notificationData
+      )
+    } catch (notificationError) {
+      console.error('通知の送信に失敗しました:', notificationError)
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: like
+    })
   } catch (error) {
-    console.error('LIKE_ERROR:', error)
-    return new NextResponse(
-      JSON.stringify({ 
-        error: 'Internal Server Error', 
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }), 
+    console.error('いいねの作成中にエラーが発生しました:', error)
+    return NextResponse.json(
+      { 
+        error: 'いいねの作成中にエラーが発生しました',
+        details: error instanceof Error ? error.message : '不明なエラー'
+      },
       { status: 500 }
     )
   }
@@ -141,40 +119,76 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = auth()
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 })
+    const { userId: clerkId } = await auth()
+    if (!clerkId) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
     }
 
-    const body = await req.json()
-    const { postId } = body
+    const { postId } = await req.json()
+    if (!postId) {
+      return NextResponse.json(
+        { error: '投稿IDは必須です' },
+        { status: 400 }
+      )
+    }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+      where: { clerkId }
     })
 
     if (!user) {
-      return new NextResponse('User not found', { status: 404 })
+      return NextResponse.json(
+        { error: 'ユーザーが見つかりません' },
+        { status: 404 }
+      )
     }
 
-    await prisma.$transaction([
-      prisma.like.delete({
-        where: {
-          postId_userId: {
-            postId,
-            userId: user.id
-          }
-        }
-      }),
-      prisma.post.update({
-        where: { id: postId },
-        data: { likeCount: { decrement: 1 } }
-      })
-    ])
+    const like = await prisma.like.findFirst({
+      where: {
+        postId,
+        userId: user.id
+      }
+    })
 
-    return new NextResponse(null, { status: 204 })
+    if (!like) {
+      return NextResponse.json(
+        { error: 'いいねが見つかりません' },
+        { status: 404 }
+      )
+    }
+
+    // いいねを削除
+    await prisma.like.delete({
+      where: {
+        id: like.id
+      }
+    })
+
+    // 投稿のいいね数を更新
+    await prisma.post.update({
+      where: { id: postId },
+      data: {
+        likeCount: {
+          decrement: 1
+        }
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'いいねを削除しました'
+    })
   } catch (error) {
-    console.error('UNLIKE_ERROR', error)
-    return new NextResponse('Internal Error', { status: 500 })
+    console.error('いいねの削除中にエラーが発生しました:', error)
+    return NextResponse.json(
+      { 
+        error: 'いいねの削除中にエラーが発生しました',
+        details: error instanceof Error ? error.message : '不明なエラー'
+      },
+      { status: 500 }
+    )
   }
-} 
+}

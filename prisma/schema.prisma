@@ -24,6 +24,9 @@ model Post {
   likes       Like[]
   likeCount   Int      @default(0)
   bads        Bad[]
+
+  @@index([title])
+  @@index([createdAt])
 }
 
 model User {
