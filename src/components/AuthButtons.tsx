@@ -2,6 +2,7 @@
 
 import { SignInButton, SignOutButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function AuthButtons() {
   const { isSignedIn, user } = useUser();
@@ -11,7 +12,6 @@ export default function AuthButtons() {
       if (!isSignedIn || !user) return;
 
       try {
-        // 既存のユーザーデータを取得
         const existingDataResponse = await fetch(`/api/profile?clerkId=${user.id}`, {
           headers: {
             Authorization: `Bearer ${user.id}`,
@@ -60,19 +60,34 @@ export default function AuthButtons() {
     <div className="flex items-center gap-4">
       {isSignedIn ? (
         <SignOutButton>
-          <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors">
+          <button className={cn(
+            "px-4 py-2 rounded-lg",
+            "bg-cyber-darker border border-cyber-green",
+            "text-cyber-green hover:text-cyber-accent",
+            "hover:shadow-neon-green transition-all duration-300"
+          )}>
             ログアウト
           </button>
         </SignOutButton>
       ) : (
         <div className="flex gap-2">
           <SignInButton>
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+            <button className={cn(
+              "px-4 py-2 rounded-lg",
+              "bg-cyber-green text-cyber-black",
+              "hover:bg-cyber-accent transition-colors",
+              "shadow-neon-green"
+            )}>
               ログイン
             </button>
           </SignInButton>
           <SignUpButton>
-            <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors">
+            <button className={cn(
+              "px-4 py-2 rounded-lg",
+              "bg-cyber-darker border border-cyber-green",
+              "text-cyber-green hover:text-cyber-accent",
+              "hover:shadow-neon-green transition-all duration-300"
+            )}>
               新規登録
             </button>
           </SignUpButton>

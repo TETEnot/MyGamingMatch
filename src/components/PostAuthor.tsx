@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface PostAuthorProps {
   userId: string;  // これはclerkIdです
@@ -58,11 +60,26 @@ const PostAuthor: React.FC<PostAuthorProps> = ({ userId }) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-3 animate-pulse">
-        <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-        <div className="flex-1">
-          <div className="h-4 bg-gray-200 rounded w-24"></div>
-          <div className="h-3 bg-gray-200 rounded w-32 mt-2"></div>
+      <div className={cn(
+        "flex items-center space-x-3",
+        "animate-pulse"
+      )}>
+        <div className={cn(
+          "w-12 h-12 rounded-full",
+          "bg-cyber-darker",
+          "border border-cyber-green/30"
+        )} />
+        <div className="flex-1 space-y-2">
+          <div className={cn(
+            "h-4 w-24 rounded",
+            "bg-cyber-darker",
+            "border border-cyber-green/30"
+          )} />
+          <div className={cn(
+            "h-3 w-32 rounded",
+            "bg-cyber-darker",
+            "border border-cyber-green/30"
+          )} />
         </div>
       </div>
     );
@@ -70,34 +87,66 @@ const PostAuthor: React.FC<PostAuthorProps> = ({ userId }) => {
 
   if (error || !userData) {
     return (
-      <div className="flex items-center space-x-3">
-        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-          <span className="text-gray-400">?</span>
+      <div className={cn(
+        "flex items-center space-x-3",
+        "bg-cyber-darker rounded-lg",
+        "border border-cyber-accent",
+        "p-3"
+      )}>
+        <div className={cn(
+          "w-12 h-12 rounded-full",
+          "bg-cyber-black",
+          "border border-cyber-accent",
+          "flex items-center justify-center"
+        )}>
+          <span className="text-cyber-accent font-cyber">?</span>
         </div>
         <div>
-          <p className="text-gray-500">ユーザーが見つかりません</p>
+          <p className="text-cyber-accent font-cyber">
+            ユーザーが見つかりません
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-3">
-      <Link href={`/user/${userData.clerkId}`} className="flex items-center space-x-3 hover:opacity-80">
+    <div className={cn(
+      "flex items-center space-x-3",
+      "group"
+    )}>
+      <Link
+        href={`/user/${userData.clerkId}`}
+        className={cn(
+          "flex items-center space-x-3",
+          "hover:opacity-80",
+          "transition-opacity duration-300"
+        )}
+      >
         <div className="relative w-12 h-12">
           <Image
             src={userData.avatarUrl || userData.imageUrl || '/default-avatar.png'}
             alt={userData.username || 'ユーザー'}
             fill
-            className="rounded-full object-cover"
+            className={cn(
+              "rounded-full object-cover",
+              "border-2 border-cyber-green group-hover:border-cyber-accent",
+              "shadow-neon-green group-hover:shadow-neon-card",
+              "transition-all duration-300"
+            )}
           />
         </div>
         <div>
-          <h4 className="font-semibold text-lg text-blue-600 hover:underline">
+          <h4 className={cn(
+            "font-cyber text-cyber-green group-hover:text-cyber-accent",
+            "transition-colors duration-300"
+          )}>
             {userData.username || 'ゲスト'}
           </h4>
           {userData.statusMessage && (
-            <p className="text-sm text-gray-500">{userData.statusMessage}</p>
+            <p className="text-sm text-cyber-green/70 font-cyber">
+              {userData.statusMessage}
+            </p>
           )}
         </div>
       </Link>

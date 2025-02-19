@@ -66,11 +66,12 @@ export default function FollowButton({
       onClick={handleFollow}
       disabled={!isSignedIn || isLoading || (user?.id === targetUserId)}
       className={cn(
-        "px-4 py-1 rounded-full text-sm font-medium transition-all duration-200",
+        "px-4 py-1 rounded-full text-sm font-cyber transition-all duration-300",
         isFollowing
-          ? "bg-gray-200 text-gray-800 hover:bg-red-50 hover:text-red-500"
-          : "bg-blue-500 text-white hover:bg-blue-600",
+          ? "bg-cyber-darker border border-cyber-green text-cyber-green hover:bg-cyber-green/20 hover:text-cyber-accent"
+          : "bg-cyber-green text-cyber-black hover:bg-cyber-accent",
         "disabled:opacity-50 disabled:cursor-not-allowed",
+        "shadow-neon-card hover:shadow-neon-green",
         className
       )}
     >

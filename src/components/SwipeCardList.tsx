@@ -134,7 +134,7 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-cyber-black">
       <div className="relative h-[600px] w-80">
         {cards.map((card, index) => (
           <TinderCard
@@ -148,24 +148,23 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
               index < currentCardIndex ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
           >
-            <div className="select-none bg-white p-6 rounded-xl shadow-lg w-full min-h-[400px] text-black transform transition-all duration-200 hover:shadow-xl">
+            <div className="select-none bg-cyber-darker border border-cyber-green p-6 rounded-xl shadow-neon-card w-full min-h-[400px] text-cyber-green transform transition-all duration-200">
               <div className="mb-4">
                 <PostAuthor userId={card.userId} />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900">{card.title}</h3>
-              <p className="mt-2 mb-4 min-h-[60px] text-gray-700 leading-relaxed">{card.content}</p>
-              <p className="text-xs text-gray-400 mb-4">
+              <h3 className="text-xl font-bold mb-2 animate-neon-pulse">{card.title}</h3>
+              <p className="mt-2 mb-4 min-h-[60px] text-cyber-green/80 leading-relaxed">{card.content}</p>
+              <p className="text-xs text-cyber-green/60 mb-4">
                 {new Date(card.date || Date.now()).toLocaleString('ja-JP')}
               </p>
               <div className="flex justify-between mt-auto">
-                
                 <button 
                   onClick={() => handleSwipe('left', card.id)}
                   disabled={!isSignedIn || isLoading}
                   className={cn(
                     "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
-                    "hover:bg-gray-100 hover:text-gray-700",
-                    "text-gray-500",
+                    "hover:bg-cyber-dark hover:text-cyber-green hover:shadow-neon-green",
+                    "text-cyber-green/70",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
@@ -178,7 +177,8 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
                   disabled={!isSignedIn || isLoading}
                   className={cn(
                     "flex items-center gap-2 p-3 rounded-full transition-all duration-200",
-                    "hover:bg-red-50 hover:text-red-500",
+                    "hover:bg-cyber-green/20 hover:text-cyber-green hover:shadow-neon-green",
+                    "text-cyber-green/70",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
@@ -192,48 +192,48 @@ const SwipeCardList = ({ cards, setCards }: { cards: Card[]; setCards: React.Dis
       </div>
 
       {/* スワイプ方向のインジケーター */}
-      <div className="fixed top-1/2 left-4 transform -translate-y-1/2 text-2xl text-red-500 opacity-50">←スキップ</div>
-      <div className="fixed top-1/2 right-4 transform -translate-y-1/2 text-2xl text-green-500 opacity-50">いいね→</div>
+      <div className="fixed top-1/2 left-4 transform -translate-y-1/2 text-2xl text-cyber-green/50 animate-neon-pulse">←スキップ</div>
+      <div className="fixed top-1/2 right-4 transform -translate-y-1/2 text-2xl text-cyber-green/50 animate-neon-pulse">いいね→</div>
 
       {isSignedIn && (
         <>
           <button
             onClick={() => setShowForm(true)}
-            className="fixed bottom-8 right-8 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
+            className="fixed bottom-8 right-8 bg-cyber-darker border border-cyber-green text-cyber-green px-4 py-2 rounded-full shadow-neon-green hover:bg-cyber-green hover:text-cyber-black transition-all duration-300"
           >
             新規投稿
           </button>
           {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                <h2 className="text-xl font-bold mb-4 text-black">新しい投稿</h2>
+            <div className="fixed inset-0 bg-cyber-black/90 flex justify-center items-center z-50">
+              <div className="bg-cyber-darker border border-cyber-green p-6 rounded-lg shadow-neon-card w-80">
+                <h2 className="text-xl font-bold mb-4 text-cyber-green animate-neon-pulse">新しい投稿</h2>
                 <select
                   value={newCard.game}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewCard({ ...newCard, game: e.target.value })}
-                  className="border p-2 mb-2 w-full text-gray-700"
+                  onChange={(e) => setNewCard({ ...newCard, game: e.target.value })}
+                  className="bg-cyber-dark border border-cyber-green text-cyber-green p-2 mb-2 w-full rounded focus:outline-none focus:shadow-neon-green"
                 >
-                  <option className='text-gray-700' value="" disabled>ゲームを選択してください</option>
+                  <option className="bg-cyber-darker text-cyber-green" value="" disabled>ゲームを選択してください</option>
                   {gameOptions.map((game) => (
-                    <option className='text-gray-700' key={game} value={game}>{game}</option>
+                    <option className="bg-cyber-darker text-cyber-green" key={game} value={game}>{game}</option>
                   ))}
                 </select>
                 <textarea
                   placeholder="説明"
                   value={newCard.description}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewCard({ ...newCard, description: e.target.value })}
-                  className="border p-2 mb-2 w-full text-gray-700"
+                  onChange={(e) => setNewCard({ ...newCard, description: e.target.value })}
+                  className="bg-cyber-dark border border-cyber-green text-cyber-green p-2 mb-2 w-full rounded focus:outline-none focus:shadow-neon-green"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddNewCard}
                     disabled={isSubmitting || !newCard.game || !newCard.description}
-                    className="bg-green-500 text-white px-4 py-2 rounded w-full disabled:bg-gray-400"
+                    className="bg-cyber-darker border border-cyber-green text-cyber-green px-4 py-2 rounded w-full hover:bg-cyber-green hover:text-cyber-black transition-all duration-300 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-cyber-green"
                   >
                     {isSubmitting ? '投稿中...' : '投稿'}
                   </button>
                   <button
                     onClick={() => setShowForm(false)}
-                    className="bg-gray-500 text-white px-4 py-2 rounded w-full"
+                    className="bg-cyber-dark border border-cyber-green text-cyber-green px-4 py-2 rounded w-full hover:bg-cyber-green hover:text-cyber-black transition-all duration-300"
                   >
                     キャンセル
                   </button>

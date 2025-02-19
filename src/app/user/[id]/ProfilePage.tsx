@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
+import { UserProvider } from './UserContext';
 import UserProfileClient from './UserProfileClient';
+import ErrorBoundary from './ErrorBoundary';
 import { cn } from '@/lib/utils';
 
-export default function UserProfilePage({ params }: { params: { id: string } }) {
+export default function ProfilePage({ params }: { params: { id: string } }) {
   const { userId } = auth();
 
   if (!userId) {
@@ -37,7 +39,11 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       "min-h-screen py-12 px-4",
       "bg-cyber-darker"
     )}>
-      <UserProfileClient id={params.id} />
+      <ErrorBoundary>
+        <UserProvider userId={params.id}>
+          <UserProfileClient id={params.id} />
+        </UserProvider>
+      </ErrorBoundary>
     </div>
   );
 } 

@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import AuthButtons from './AuthButtons';
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser } from '@clerk/nextjs';
-import { Bell, Search, Settings, Heart } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { SignOutButton } from '@clerk/nextjs';
+import { Bell, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { pusherClient } from '@/lib/pusher';
-
-// Define the type for newCard
-// interface NewCard {
-//   game: string;
-//   description: string;
-// }
 
 interface LikeNotification {
   type: 'LIKE';
@@ -45,6 +39,7 @@ const Header = () => {
   const { isSignedIn, user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currentUser, setCurrentUser] = useState<DBUser | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     async function fetchUser() {
@@ -76,24 +71,11 @@ const Header = () => {
     channel.bind('new-like', (data: LikeNotification) => {
       console.log('Header: Received notification:', data);
       setNotifications(prev => [data, ...prev]);
-      toast.success(
-        <div>
-          <p className="font-bold">{data.likedBy}さんがいいねしました！</p>
-          <p className="text-sm">投稿「{data.postTitle}」</p>
-        </div>
-      );
     });
 
     channel.bind('new-follow', (data: FollowNotification) => {
-      console.log('Header: Received follow notification:', data);
+      console.log('Header: Received notification:', data);
       setNotifications(prev => [data, ...prev]);
-      toast.success(
-        <div>
-          <Link href={`/user/${data.actorId}`} className="hover:underline">
-            <p className="font-bold">{data.actorName}さんがあなたをフォローしました！</p>
-          </Link>
-        </div>
-      );
     });
 
     return () => {
@@ -102,82 +84,138 @@ const Header = () => {
     };
   }, [isSignedIn, user]);
 
-  // 未使用の関数を削除またはコメントアウト
-  // const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-  //   setNewCard({ ...newCard, description: e.target.value });
-  // };
-
   const renderNotificationContent = (notification: Notification) => {
-    if (notification.type === 'LIKE') {
-      return (
-        <div className="py-2 border-b border-gray-200 last:border-0">
-          <p className="text-gray-800 text-sm">
-            {notification.likedBy}さんが「{notification.postTitle}」にいいねしました
-          </p>
-          <p className="text-gray-500 text-xs">
-            {new Date(notification.timestamp).toLocaleString('ja-JP')}
-          </p>
-        </div>
-      );
-    } else if (notification.type === 'FOLLOW') {
-      return (
-        <div className="py-2 border-b border-gray-200 last:border-0">
-          <Link href={`/user/${notification.actorId}`} className="hover:underline">
-            <p className="text-gray-800 text-sm">
-              {notification.actorName}さんがあなたをフォローしました
-            </p>
-          </Link>
-          <p className="text-gray-500 text-xs">
-            {new Date(notification.timestamp).toLocaleString('ja-JP')}
-          </p>
-        </div>
-      );
+    switch (notification.type) {
+      case 'LIKE':
+        return (
+          <div className="text-cyber-green">
+            <span className="font-cyber">{notification.likedBy}</span>
+            <span className="text-cyber-green/70">さんが「{notification.postTitle}」にいいねしました</span>
+          </div>
+        );
+      case 'FOLLOW':
+        return (
+          <div className="text-cyber-green">
+            <span className="font-cyber">{notification.actorName}</span>
+            <span className="text-cyber-green/70">さんがあなたをフォローしました</span>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
   return (
-    <header className="bg-white shadow-sm">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-gray-900">
-            ゲームマッチング
+    <header className={cn(
+      "fixed top-0 left-0 right-0 z-50",
+      "bg-cyber-darker border-b border-cyber-green",
+      "shadow-neon-card"
+    )}>
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          <Link href="/" className="font-cyber text-2xl text-cyber-green animate-neon-pulse">
+            Game Matching
           </Link>
 
-          <div className="flex items-center space-x-4">
-            {isSignedIn && (
+          <nav className="flex items-center space-x-4">
+            {isSignedIn ? (
               <>
                 <Link
                   href="/search"
-                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                  title="検索"
+                  className="text-cyber-green hover:text-cyber-accent transition-colors"
                 >
-                  <Search className="w-6 h-6" />
+                  検索
                 </Link>
                 <Link
                   href="/likes"
-                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                  title="いいね一覧"
+                  className="text-cyber-green hover:text-cyber-accent transition-colors"
                 >
-                  <Heart className="w-6 h-6" />
+                  いいね一覧
                 </Link>
-                <Link
-                  href="/notifications"
-                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                  title="通知"
-                >
-                  <Bell className="w-6 h-6" />
+                <div className="relative">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className={cn(
+                      "p-2 rounded-full transition-all duration-300",
+                      "text-cyber-green hover:text-cyber-accent",
+                      "hover:bg-cyber-green/20"
+                    )}
+                  >
+                    <Bell className="w-6 h-6" />
+                    {notifications.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-cyber-accent rounded-full text-xs flex items-center justify-center text-cyber-black">
+                        {notifications.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className={cn(
+                      "absolute right-0 mt-2 w-80",
+                      "bg-cyber-darker border border-cyber-green rounded-lg",
+                      "shadow-neon-card"
+                    )}>
+                      <div className="p-2">
+                        {notifications.length === 0 ? (
+                          <p className="text-cyber-green/70 text-center py-4">通知はありません</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {notifications.map((notification, index) => (
+                              <div
+                                key={index}
+                                className={cn(
+                                  "p-3 rounded-lg",
+                                  "border border-cyber-green/30",
+                                  "hover:border-cyber-green hover:shadow-neon-green",
+                                  "transition-all duration-300"
+                                )}
+                              >
+                                {renderNotificationContent(notification)}
+                                <p className="text-xs text-cyber-green/50 mt-1">
+                                  {new Date(notification.timestamp).toLocaleString('ja-JP')}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <Link href="/profile" className="relative w-8 h-8">
+                  <Image
+                    src={currentUser?.avatarUrl || currentUser?.imageUrl || '/default-avatar.png'}
+                    alt="プロフィール"
+                    fill
+                    className="rounded-full border border-cyber-green shadow-neon-green"
+                  />
                 </Link>
-                <Link
-                  href="/profile"
-                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                  title="プロフィール設定"
-                >
-                  <Settings className="w-6 h-6" />
-                </Link>
+                <SignOutButton>
+                  <button className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg",
+                    "bg-cyber-darker border border-cyber-green",
+                    "text-cyber-green hover:text-cyber-accent",
+                    "hover:shadow-neon-green transition-all duration-300"
+                  )}>
+                    <LogOut className="w-4 h-4" />
+                    <span>ログアウト</span>
+                  </button>
+                </SignOutButton>
               </>
+            ) : (
+              <Link
+                href="/sign-in"
+                className={cn(
+                  "px-4 py-2 rounded-lg",
+                  "bg-cyber-green text-cyber-black",
+                  "hover:bg-cyber-accent transition-colors",
+                  "shadow-neon-green"
+                )}
+              >
+                ログイン
+              </Link>
             )}
-            {!isSignedIn && <AuthButtons />}
-          </div>
+          </nav>
         </div>
       </div>
     </header>

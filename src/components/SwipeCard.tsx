@@ -2,11 +2,32 @@ import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { XIcon, HeartIcon } from "@heroicons/react/solid";
+import { X, Heart } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const SwipeCard = ({ post, onRemove, isLiked, likeCount, handleLikeClick }) => {
+interface SwipeCardProps {
+  post: {
+    id: number;
+    title: string;
+    content: string;
+    imageUrl?: string;
+    user: {
+      clerkId: string;
+      username: string;
+      avatarUrl: string | null;
+      imageUrl: string | null;
+    };
+    createdAt: string;
+  };
+  onRemove: (id: number) => void;
+  isLiked: boolean;
+  likeCount: number;
+  handleLikeClick: () => void;
+}
+
+const SwipeCard = ({ post, onRemove, isLiked, likeCount, handleLikeClick }: SwipeCardProps) => {
   const swipeConfidenceThreshold = 10000;
-  const swipePower = (offset, velocity) => {
+  const swipePower = (offset: number, velocity: number) => {
     return Math.abs(offset) * velocity;
   };
 
@@ -44,54 +65,71 @@ const SwipeCard = ({ post, onRemove, isLiked, likeCount, handleLikeClick }) => {
           handleSwipeLeft();
         }
       }}
-      className="relative w-full max-w-sm bg-white rounded-lg shadow-lg p-4 cursor-grab active:cursor-grabbing"
+      className={cn(
+        "relative w-full max-w-sm p-4 cursor-grab active:cursor-grabbing",
+        "bg-cyber-darker border border-cyber-green rounded-lg",
+        "shadow-neon-card transition-all duration-300",
+        "hover:shadow-neon-green hover:border-cyber-accent"
+      )}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center">
-          <Image
-            src={post.user.avatarUrl || "/default-avatar.png"}
-            alt={post.user.username}
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
+          <div className="relative w-10 h-10">
+            <Image
+              src={post.user.avatarUrl || post.user.imageUrl || "/default-avatar.png"}
+              alt={post.user.username}
+              fill
+              className="rounded-full border border-cyber-green shadow-neon-green"
+            />
+          </div>
           <div className="ml-2">
-            <Link href={`/user/${post.user.clerkId}`} className="font-semibold hover:underline">
+            <Link
+              href={`/user/${post.user.clerkId}`}
+              className="font-cyber text-cyber-green hover:text-cyber-accent hover:underline"
+            >
               {post.user.username}
             </Link>
-            <p className="text-sm text-gray-500">
-              {new Date(post.createdAt).toLocaleDateString()}
+            <p className="text-sm text-cyber-green/70">
+              {new Date(post.createdAt).toLocaleDateString('ja-JP')}
             </p>
           </div>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex space-x-4">
           <button
             onClick={handleLikeClick}
-            className={`transition-colors ${
-              isLiked ? "text-pink-500" : "text-gray-500 hover:text-pink-500"
-            }`}
+            className={cn(
+              "flex items-center gap-2 p-2 rounded-full transition-all duration-200",
+              "hover:bg-cyber-green/20",
+              isLiked ? "text-cyber-accent" : "text-cyber-green/70"
+            )}
           >
-            <HeartIcon className="w-6 h-6" />
-            <span className="text-sm ml-1">{likeCount}</span>
+            <Heart className={cn("w-6 h-6", isLiked && "fill-cyber-accent")} />
+            <span className="text-sm">{likeCount}</span>
           </button>
           <button
             onClick={handleBadClick}
-            className="text-gray-500 hover:text-red-500 transition-colors"
+            className={cn(
+              "flex items-center gap-2 p-2 rounded-full transition-all duration-200",
+              "hover:bg-cyber-green/20 text-cyber-green/70"
+            )}
           >
-            <XIcon className="w-6 h-6" />
+            <X className="w-6 h-6" />
           </button>
         </div>
       </div>
-      <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
-      <p className="text-gray-700">{post.content}</p>
+      <h2 className="text-xl font-cyber font-semibold mb-2 text-cyber-green animate-neon-pulse">
+        {post.title}
+      </h2>
+      <p className="text-cyber-green/90">{post.content}</p>
       {post.imageUrl && (
-        <Image
-          src={post.imageUrl}
-          alt="Post image"
-          width={300}
-          height={200}
-          className="mt-4 rounded-lg"
-        />
+        <div className="mt-4 relative w-full h-48 rounded-lg overflow-hidden border border-cyber-green shadow-neon-card">
+          <Image
+            src={post.imageUrl}
+            alt="投稿画像"
+            fill
+            className="object-cover"
+          />
+        </div>
       )}
     </motion.div>
   );

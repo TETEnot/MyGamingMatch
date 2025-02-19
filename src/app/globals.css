@@ -2,20 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #00ff00;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #00ff00;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Orbitron', Arial, sans-serif;
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 10px var(--foreground),
+                 0 0 20px var(--foreground),
+                 0 0 30px var(--foreground);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 10px var(--foreground),
+                0 0 20px var(--foreground);
+  }
+}
+
+@layer components {
+  .cyber-grid {
+    background-image: 
+      linear-gradient(to right, rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .cyber-button {
+    @apply bg-transparent border border-[#00ff00] text-[#00ff00]
+           px-4 py-2 rounded transition-all duration-300
+           hover:bg-[#00ff00] hover:text-black
+           hover:shadow-[0_0_10px_#00ff00]
+           active:transform active:scale-95;
+  }
+
+  .cyber-card {
+    @apply bg-black/80 border border-[#00ff00]
+           rounded-lg p-4 transition-all duration-300
+           hover:shadow-[0_0_15px_rgba(0,255,0,0.5)];
+  }
+
+  .cyber-input {
+    @apply bg-black border border-[#00ff00] text-[#00ff00]
+           rounded px-3 py-2 outline-none
+           focus:shadow-[0_0_10px_#00ff00]
+           placeholder:text-[#00ff00]/50;
+  }
+
+  .cyber-heading {
+    @apply font-bold text-[#00ff00] text-glow;
+  }
+
+  .cyber-avatar {
+    @apply rounded-full border-2 border-[#00ff00]
+           shadow-[0_0_10px_#00ff00];
+  }
 }

@@ -1,207 +1,223 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import Header from '@/components/Header';
 import { useUser } from '@clerk/nextjs';
-import FollowButton from '@/components/FollowButton';
-import FollowStats from '@/components/FollowStats';
-
-interface UserProfile {
-  id: number;
-  username: string;
-  avatarUrl: string | null;
-  imageUrl: string | null;
-  statusMessage: string | null;
-  email: string;
-  clerkId: string;
-  _count?: {
-    followers: number;
-    following: number;
-  };
-}
-
-interface UserPost {
-  id: number;
-  title: string;
-  content: string;
-  date: string;
-}
+import { cn } from '@/lib/utils';
+import { Loader2, UserPlus, UserMinus } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import PostCard from '@/components/PostCard';
 
 interface UserProfileClientProps {
   id: string;
 }
 
-const UserProfileClient: React.FC<UserProfileClientProps> = ({ id }) => {
-  const { user: currentUser, isLoaded: isUserLoaded } = useUser();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
+interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  statusMessage: string | null;
+  avatarUrl: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+  isFollowing: boolean;
+  followersCount: number;
+  followingCount: number;
+}
+
+interface Post {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  likeCount: number;
+  user: {
+    id: number;
+    username: string;
+    avatarUrl: string | null;
+    imageUrl: string | null;
+  };
+  isLiked: boolean;
+}
+
+export default function UserProfileClient({ id }: UserProfileClientProps) {
+  const { user } = useUser();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!id) {
-        console.error('No user ID provided');
-        setError('ユーザーIDが指定されていません');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!isUserLoaded) {
-        console.log('Waiting for Clerk user to load...');
-        return;
-      }
-
+    const fetchUserProfile = async () => {
       try {
-        console.log('Attempting to fetch user profile for Clerk ID:', id);
-        const token = currentUser?.id || '';
-        console.log('Using authorization token:', token);
+        const response = await fetch(`/api/user/${id}`);
+        if (!response.ok) throw new Error('プロフィールの取得に失敗しました');
+        const { data } = await response.json();
+        setProfile(data);
 
-        const profileResponse = await fetch(`/api/user/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        console.log('Profile response status:', profileResponse.status);
-        const responseText = await profileResponse.text();
-        console.log('Raw response:', responseText);
-
-        if (!profileResponse.ok) {
-          let errorMessage = 'ユーザー情報の取得に失敗しました';
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.error || errorMessage;
-          } catch (e) {
-            console.error('Error parsing error response:', e);
-          }
-          throw new Error(errorMessage);
-        }
-
-        const responseData = JSON.parse(responseText);
-        console.log('Parsed profile response:', responseData);
-        
-        if (!responseData.data) {
-          throw new Error('ユーザーデータが見つかりません');
-        }
-
-        setUserProfile(responseData.data);
-        console.log('Set user profile:', responseData.data);
-
-        // 投稿一覧の取得
-        if (responseData.data.id) {
-          console.log('Fetching posts for user ID:', responseData.data.id);
-          const postsResponse = await fetch(`/api/posts?userId=${responseData.data.clerkId}`);
-          if (postsResponse.ok) {
-            const postsData = await postsResponse.json();
-            console.log('Received posts:', postsData);
-            setUserPosts(postsData);
-          } else {
-            console.warn('Failed to fetch posts:', postsResponse.status);
-          }
-        }
+        const postsResponse = await fetch(`/api/user/${id}/posts`);
+        if (!postsResponse.ok) throw new Error('投稿の取得に失敗しました');
+        const { data: postsData } = await postsResponse.json();
+        setPosts(postsData);
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        setError(error instanceof Error ? error.message : '不明なエラー');
+        console.error('Error fetching user profile:', error);
+        toast.error('プロフィールの取得に失敗しました');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (isUserLoaded) {
-      fetchUserData();
+    if (user) {
+      fetchUserProfile();
     }
-  }, [id, currentUser, isUserLoaded]);
+  }, [id, user]);
 
-  console.log('Current state:', { isLoading, error, userProfile, userPosts });
+  const handleFollowToggle = async () => {
+    if (!profile) return;
+    setIsFollowLoading(true);
 
-  if (error) {
+    try {
+      const response = await fetch(`/api/user/${id}/follow`, {
+        method: profile.isFollowing ? 'DELETE' : 'POST',
+      });
+
+      if (!response.ok) throw new Error('フォロー操作に失敗しました');
+
+      const { data } = await response.json();
+      setProfile(prev => prev ? { ...prev, isFollowing: data.isFollowing, followersCount: data.followersCount } : null);
+      toast.success(profile.isFollowing ? 'フォロー解除しました' : 'フォローしました');
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast.error('フォロー操作に失敗しました');
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  if (isLoading || !profile) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <Header />
-        <main className="p-8 max-w-2xl mx-auto">
-          <div className="text-center text-red-500">
-            <p>エラーが発生しました: {error}</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (isLoading || !userProfile) {
-    return (
-      <div className="min-h-screen bg-gray-100">
-        <Header />
-        <main className="p-8 max-w-2xl mx-auto">
-          <div className="text-center">
-            <p>読み込み中...</p>
-          </div>
-        </main>
+      <div className={cn(
+        "flex justify-center items-center h-64",
+        "bg-cyber-darker"
+      )}>
+        <Loader2 className={cn(
+          "w-12 h-12 text-cyber-green",
+          "animate-spin"
+        )} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header />
-      <main className="p-8 max-w-2xl mx-auto">
-        {/* プロフィール情報 */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="relative w-24 h-24">
+    <div className={cn(
+      "max-w-2xl mx-auto",
+      "space-y-8"
+    )}>
+      <div className={cn(
+        "p-8 rounded-lg",
+        "bg-cyber-black",
+        "border border-cyber-green",
+        "shadow-neon-card"
+      )}>
+        <div className="text-center">
+          <div className="relative inline-block group">
+            <div className="relative w-32 h-32 mx-auto mb-4">
               <Image
-                src={userProfile.avatarUrl || userProfile.imageUrl || '/default-avatar.png'}
-                alt={userProfile.username}
+                src={profile.avatarUrl || profile.imageUrl || '/default-avatar.png'}
+                alt={profile.username}
                 fill
-                className="rounded-full object-cover"
-                priority
+                className={cn(
+                  "rounded-full object-cover",
+                  "border-2 border-cyber-green",
+                  "shadow-neon-green",
+                  "transition-all duration-300"
+                )}
               />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-black">{userProfile.username}</h1>
-                {currentUser?.id !== userProfile.clerkId && (
-                  <FollowButton targetUserId={userProfile.clerkId} />
-                )}
-              </div>
-              {userProfile.statusMessage && (
-                <p className="text-black mt-2">{userProfile.statusMessage}</p>
-              )}
-              <div className="mt-4">
-                <FollowStats
-                  userId={userProfile.clerkId}
-                  followersCount={userProfile._count?.followers || 0}
-                  followingCount={userProfile._count?.following || 0}
-                />
-              </div>
+          </div>
+
+          <h1 className={cn(
+            "text-2xl font-cyber text-cyber-green mb-2",
+            "animate-neon-pulse"
+          )}>
+            {profile.username}
+          </h1>
+          {profile.statusMessage && (
+            <p className="text-cyber-green/80 font-cyber mb-4">
+              {profile.statusMessage}
+            </p>
+          )}
+
+          <div className={cn(
+            "flex justify-center items-center gap-8 mb-6",
+            "text-cyber-green font-cyber"
+          )}>
+            <div>
+              <div className="text-xl">{profile.followersCount}</div>
+              <div className="text-cyber-green/60">フォロワー</div>
+            </div>
+            <div>
+              <div className="text-xl">{profile.followingCount}</div>
+              <div className="text-cyber-green/60">フォロー中</div>
             </div>
           </div>
-        </div>
 
-        {/* 投稿一覧 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4 text-black">投稿一覧</h2>
-          {userPosts.length === 0 ? (
-            <p className="text-black">まだ投稿がありません</p>
-          ) : (
-            <div className="space-y-4">
-              {userPosts.map((post) => (
-                <div key={post.id} className="border-b pb-4">
-                  <h3 className="text-lg font-semibold text-black">{post.title}</h3>
-                  <p className="text-black mt-2">{post.content}</p>
-                  <p className="text-sm text-black mt-2">
-                    {new Date(post.date).toLocaleString('ja-JP')}
-                  </p>
-                </div>
-              ))}
-            </div>
+          {user?.id !== id && (
+            <button
+              onClick={handleFollowToggle}
+              disabled={isFollowLoading}
+              className={cn(
+                "px-6 py-2 rounded",
+                "font-cyber",
+                "flex items-center gap-2 mx-auto",
+                "transition-colors duration-300",
+                profile.isFollowing
+                  ? "bg-cyber-darker border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-cyber-black"
+                  : "bg-cyber-green text-cyber-black hover:bg-cyber-accent",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+            >
+              {isFollowLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : profile.isFollowing ? (
+                <UserMinus className="w-4 h-4" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
+              {profile.isFollowing ? 'フォロー中' : 'フォローする'}
+            </button>
           )}
         </div>
-      </main>
+      </div>
+
+      <div className="space-y-4">
+        {posts.map(post => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onPostUpdated={(updatedPost: Post) => {
+              setPosts(prev =>
+                prev.map(p => p.id === updatedPost.id ? updatedPost : p)
+              );
+            }}
+          />
+        ))}
+        {posts.length === 0 && (
+          <div className={cn(
+            "p-8 rounded-lg",
+            "bg-cyber-black",
+            "border border-cyber-green",
+            "shadow-neon-card",
+            "text-center"
+          )}>
+            <p className="text-cyber-green/80 font-cyber">
+              投稿がありません
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
-};
-
-export default UserProfileClient; 
+}

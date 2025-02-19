@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import FollowList from './FollowList';
+import { cn } from '@/lib/utils';
 
 interface FollowStatsProps {
   userId: string;
@@ -19,18 +20,26 @@ export default function FollowStats({
     <div className="flex space-x-6">
       <button
         onClick={() => setShowFollowers(true)}
-        className="text-sm hover:underline focus:outline-none"
+        className={cn(
+          "text-sm focus:outline-none",
+          "text-cyber-green hover:text-cyber-accent",
+          "transition-colors duration-300"
+        )}
       >
-        <span className="font-bold">{followersCount}</span>
-        <span className="text-gray-600 ml-1">フォロワー</span>
+        <span className="font-cyber animate-neon-pulse">{followersCount}</span>
+        <span className="text-cyber-green/70 ml-1">フォロワー</span>
       </button>
 
       <button
         onClick={() => setShowFollowing(true)}
-        className="text-sm hover:underline focus:outline-none"
+        className={cn(
+          "text-sm focus:outline-none",
+          "text-cyber-green hover:text-cyber-accent",
+          "transition-colors duration-300"
+        )}
       >
-        <span className="font-bold">{followingCount}</span>
-        <span className="text-gray-600 ml-1">フォロー中</span>
+        <span className="font-cyber animate-neon-pulse">{followingCount}</span>
+        <span className="text-cyber-green/70 ml-1">フォロー中</span>
       </button>
 
       <FollowList

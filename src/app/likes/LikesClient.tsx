@@ -17,10 +17,10 @@ interface LikesClientProps {
 
 export default function LikesClient({ likedPosts, currentUserId }: LikesClientProps) {
   return (
-    <div className="container mx-auto px-4 py-8 text-gray-900">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">いいねした投稿</h1>
+    <div className="container mx-auto px-4 py-8 text-white">
+      <h1 className="text-2xl font-bold mb-6 text-white">いいねした投稿</h1>
       {likedPosts.length === 0 ? (
-        <p className="text-gray-900 text-center">いいねした投稿はありません</p>
+        <p className="text-white text-center">いいねした投稿はありません</p>
       ) : (
         <div className="grid gap-4">
           {likedPosts.map(like => (

@@ -11,6 +11,11 @@ export default authMiddleware({
     "/sign-up",
     "/api/webhook(.*)",
     "/api/user(.*)", // ユーザー情報APIを公開ルートとして追加
+    "/_next/static/(.*)",
+    "/favicon.ico",
+  ],
+  ignoredRoutes: [
+    "/api/webhook(.*)",
   ],
 });
 

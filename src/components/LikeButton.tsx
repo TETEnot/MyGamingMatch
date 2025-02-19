@@ -53,23 +53,26 @@ export default function LikeButton({
       onClick={handleLike}
       disabled={!isSignedIn || isLoading}
       className={cn(
-        "flex items-center gap-2 p-2 rounded-full transition-all duration-200",
-        "hover:bg-red-50",
-        "disabled:opacity-50 disabled:cursor-not-allowed"
+        "flex items-center gap-2 p-2 rounded-full transition-all duration-300",
+        "hover:bg-cyber-green/20",
+        isLiked ? "text-cyber-accent" : "text-cyber-green/70",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        "group"
       )}
     >
       <Heart
         className={cn(
-          "w-6 h-6 transition-colors duration-200",
-          isLiked ? "fill-red-500 text-red-500" : "text-gray-500"
+          "w-6 h-6 transition-all duration-300",
+          isLiked ? "fill-cyber-accent text-cyber-accent" : "text-cyber-green/70",
+          "group-hover:scale-110"
         )}
       />
       <span className={cn(
-        "text-sm font-medium",
-        isLiked ? "text-red-500" : "text-gray-500"
+        "text-sm font-cyber",
+        isLiked ? "text-cyber-accent" : "text-cyber-green/70"
       )}>
         {likeCount}
       </span>
     </button>
   )
-} 
+}
